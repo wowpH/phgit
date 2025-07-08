@@ -6,21 +6,19 @@ setlocal enabledelayedexpansion
 @REM 时间：2025/07/07 21:15:00
 @REM usage: phgit [命令] [参数]
 @REM [命令] [参数]:
-@REM    -c [文件]       克隆文件中的每个URL到当前目录下
 @REM    clone [文件]    克隆文件中的每个URL到当前目录下
-@REM    -p              拉取当前目录下的每个仓库
 @REM    pull            拉取当前目录下的每个仓库
 @REM    -b [分支名]     切换当前目录下所有仓库到指定的分支
 @REM    branch [分支名] 切换当前目录下所有仓库到指定的分支
 @REM    -h              查看帮助信息
 @REM    help            查看帮助信息
-@REM    -c -h           查看phgit -c命令的帮助信息，主要是[文件]格式
+@REM    clone -h           查看phgit clone命令的帮助信息，主要是[文件]格式
 @REM                    [文件]内容示例：
 @REM                    https://github.com/wowpH/demo1.git
 @REM                    https://github.com/wowpH/demo2.git
 @REM phgit命令示例：
-@REM    phgit -c url.txt 
-@REM    phgit -p
+@REM    phgit clone url.txt 
+@REM    phgit pull
 
 :: 初始化计数器
 set /a total=0
@@ -28,9 +26,7 @@ set /a success=0
 set /a failed=0
 
 :: 参数处理
-if "%1"=="-c" goto clone
 if "%1"=="clone" goto clone
-if "%1"=="-p" goto pull
 if "%1"=="pull" goto pull
 if "%1"=="-b" goto branch
 if "%1"=="branch" goto branch
@@ -220,13 +216,13 @@ goto end
 
 :help
 echo.
-echo 批量克隆拉取脚本 v1.0
+echo 批量git脚本 v1.0
 echo.
 echo 用法: phgit ^<命令^> [^<参数^>]
 echo.
 echo 命令列表:
-echo    clone ^| -c ^<文件^>      批量克隆指定文件中的Git仓库URL
-echo    pull ^| -p              批量拉取当前目录下的所有Git仓库
+echo    clone ^<文件^>           批量克隆指定文件中的Git仓库URL
+echo    pull                   批量拉取当前目录下的所有Git仓库
 echo    branch ^| -b ^<分支名^>   批量切换当前目录下所有Git仓库到指定分支
 echo    help ^| -h              显示此帮助信息
 echo.
@@ -235,9 +231,9 @@ echo    -h, --help             显示指定命令的帮助信息
 echo.
 echo 示例:
 echo    phgit clone url.txt    克隆url.txt文件中列出的所有仓库
-echo    phgit -p               拉取当前目录下所有仓库的更新
+echo    phgit pull             拉取当前目录下所有仓库的更新
 echo    phgit branch main      将所有仓库切换到main分支
-echo    phgit -c -h            显示clone命令的帮助信息
+echo    phgit clone -h         显示clone命令的帮助信息
 goto end
 
 :end
