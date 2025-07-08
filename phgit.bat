@@ -82,7 +82,8 @@ for /f "usebackq delims=" %%i in ("%2") do (
         for /l %%p in (!percent!,1,99) do set "progress=!progress! "
         
         echo 正在克隆: !url!
-        git clone "!url!"
+        @REM 克隆到指定目录
+        git clone "!url!" "./repos/%date:~0,4%%date:~5,2%%date:~8,2%/%%~nxi"
         if !errorlevel! equ 0 (
             set /a success+=1
             echo [成功] 克隆完成
