@@ -28,8 +28,7 @@ set /a failed=0
 :: 参数处理
 if "%1"=="clone" goto clone
 if "%1"=="pull" goto pull
-if "%1"=="-b" goto branch
-if "%1"=="branch" goto branch
+if "%1"=="switch" goto switch
 if "%1"=="-h" goto help
 if "%1"=="help" goto help
 if "%1"=="set" goto set
@@ -40,12 +39,7 @@ goto help
 :clone
 :: 检查是否显示克隆命令帮助
 if "%2"=="-h" goto clone_help
-
-:: 检查文件参数是否提供
-if "%2"=="" (
-    echo 错误：缺少文件参数
-    goto clone_help
-)
+if "%2"=="" goto clone_help
 
 :: 检查文件是否存在
 if not exist "%2" (
@@ -60,7 +54,8 @@ if exist "phgit.ini" (
         set "repos_dir=%%d"
     )
 )
-set "repos_dir=%repos_dir%\%date:~0,4%%date:~5,2%%date:~8,2%\%time:~0,2%%time:~3,2%%time:~6,2%"
+@REM set "timestamp=%date:~0,4%%date:~5,2%%date:~8,2%_%time:~0,2%%time:~3,2%%time:~6,2%"
+@REM set "repos_dir=%repos_dir%\%timestamp%"
 
 :: 初始化进度计数器
 set /a processed=0
@@ -115,17 +110,22 @@ goto end
 echo.
 echo phgit %1       批量克隆Git仓库
 echo.
-echo 用法: phgit %1 [选项] ^<文件^>
+echo 用法: 
+echo    phgit %1 [选项] ^<参数^>
 echo.
 echo 选项:
-echo    -h          显示此帮助信息
+echo    -h             显示此帮助信息
 echo.
 echo 参数:
-echo    ^<文件^>      包含Git仓库URL列表的文本文件
+echo    ^<参数^>         txt文件路径(相对路径或绝对路径), 文件每行一个Git仓库URL, 例如:
 echo.
-echo 文件格式, 每行一个Git仓库URL, 例如:
-echo    https://github.com/wowpH/demo1.git
-echo    https://github.com/wowpH/demo2.git
+echo                   url.txt
+echo                   https://github.com/wowpH/demo1.git
+echo                   https://github.com/wowpH/demo2.git
+echo.
+echo                   E:\IdeaProjects\phgit\url.txt
+echo                   https://github.com/wowpH/demo1.git
+echo                   https://github.com/wowpH/demo2.git
 echo.
 echo 示例:
 echo    phgit %1 url.txt
@@ -178,11 +178,17 @@ echo     成功: %success%
 echo     失败: %failed%
 goto end
 
-:branch
+:switch
 :: 检查分支参数是否提供
-if "%2"=="" (
-    echo 错误：缺少分支名参数
-    goto help
+if "%2"=="-h" goto switch_help
+if "%2"=="" goto switch_help
+
+:: 从配置文件读取仓库目录，默认为.\repos
+set "repos_dir=.\repos"
+if exist "phgit.ini" (
+    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
+        set "repos_dir=%%d"
+    )
 )
 
 :: 初始化进度计数器
@@ -190,17 +196,18 @@ set /a processed=0
 set /a total=0
 
 :: 先统计总仓库数
-for /d %%i in (*) do (
+for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a total+=1
     )
 )
 
 echo 开始批量切换分支到: %2
+echo 仓库目录: %repos_dir%
 echo 总仓库数: %total%
 echo.
 
-for /d %%i in (*) do (
+for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         echo 正在处理: %%i
@@ -213,7 +220,7 @@ for /d %%i in (*) do (
             set /a failed+=1
             echo [失败] 切换失败
         )
-        cd ..
+        cd /d "%~dp0"
         echo 进度: !processed!/%total%
         echo.
     )
@@ -230,23 +237,16 @@ echo.
 echo 批量git脚本 v1.0
 echo.
 echo 用法:
-echo    phgit set ^<key^> ^<value^>      设置全局配置
-echo    phgit set -h                 显示phgit set命令的帮助信息
-echo    phgit clone ^<txt文件^>        批量克隆指定txt文件中的Git仓库到仓库目录,仓库目录可通过phgit set repos设置
-echo    phgit clone -h                  显示phgit clone命令的帮助信息
-echo    phgit switch ^<分支名^>        切换当前目录下所有Git仓库到指定分支
-echo    phgit pull                   批量拉取当前目录下的所有Git仓库
-echo    phgit branch ^| -b ^<分支名^>   批量切换当前目录下所有Git仓库到指定分支
-echo    phgit help ^| -h              显示此帮助信息
+echo    phgit [^<命令^>] [选项] [参数]
+echo.
+echo 命令:
+echo    set         设置全局配置
+echo    clone       批量克隆
+echo    switch      批量切换分支
+echo    pull        批量拉取
 echo.
 echo 选项:
-echo    -h, --help             显示指定命令的帮助信息
-echo.
-echo 示例:
-echo    phgit clone url.txt    克隆url.txt文件中列出的所有仓库
-echo    phgit pull             拉取当前目录下所有仓库的更新
-echo    phgit branch main      将所有仓库切换到main分支
-echo    phgit clone -h         显示clone命令的帮助信息
+echo    -h          显示帮助信息
 goto end
 
 :set
@@ -287,20 +287,41 @@ goto end
 
 :set_help
 echo.
-echo phgit set       管理phgit配置
+echo phgit set                      管理phgit配置
 echo.
-echo 用法: phgit set [选项] ^<key^> ^<value^>
+echo 用法:
+echo    phgit set [选项] ^<key^> ^<value^>
 echo.
 echo 选项:
-echo    -h           显示此帮助信息
+echo    -h                          显示此帮助信息
 echo.
 echo 参数:
-echo    ^<key^>        配置项名称
-echo    ^<value^>      配置项值
+echo    ^<key^>                       配置项名称
+echo    ^<value^>                     配置项值
+echo.
+echo key:
+echo    repos                       仓库目录
 echo.
 echo 示例:
 echo    phgit set repos .\repos     设置仓库目录为当前目录的repos子目录
 echo    phgit set -h                显示set命令的帮助信息
+goto end
+
+:switch_help
+echo.
+echo phgit switch       批量切换分支
+echo.
+echo 用法: phgit switch [选项] ^<分支名^>
+echo.
+echo 选项:
+echo    -h              显示此帮助信息
+echo.
+echo 参数:
+echo    ^<分支名^>        要切换到的分支名称
+echo.
+echo 示例:
+echo    phgit switch main      将所有仓库切换到main分支
+echo    phgit switch -h        显示switch命令的帮助信息
 goto end
 
 :end
