@@ -200,6 +200,11 @@ echo.
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
+        set /a percent=processed*100/total
+        set "progress="
+        for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
+        for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+        
         echo 正在处理: %%i
         cd /d "%%i"
         git checkout "%2" 2>&1
@@ -211,7 +216,7 @@ for /d %%i in ("%repos_dir%\*") do (
             echo [失败] 切换失败
         )
         cd /d "%~dp0"
-        echo 进度: !processed!/%total%
+        echo 进度: [!progress!] !percent!%%
         echo.
     )
 )
