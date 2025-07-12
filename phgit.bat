@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
+set "VER=1.0.2"
+
 :: 读取配置文件中的仓库目录, 默认为当前目录
 set "repos_dir=."
 if exist "phgit.ini" (
@@ -208,7 +210,8 @@ goto end
 
 :help
 echo.
-echo 批量git脚本 v1.0.1
+echo 批量git脚本 v%VER%
+
 echo.
 echo 用法:
 echo    phgit [^<命令^>] [选项] [参数]
