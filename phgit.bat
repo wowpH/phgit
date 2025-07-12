@@ -1,25 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
 
-@REM 批量克隆拉取脚本
-@REM 作者：pH
-@REM 时间：2025/07/07 21:15:00
-@REM usage: phgit [命令] [参数]
-@REM [命令] [参数]:
-@REM    clone [文件]    克隆文件中的每个URL到当前目录下
-@REM    pull            拉取当前目录下的每个仓库
-@REM    -b [分支名]     切换当前目录下所有仓库到指定的分支
-@REM    branch [分支名] 切换当前目录下所有仓库到指定的分支
-@REM    -h              查看帮助信息
-@REM    help            查看帮助信息
-@REM    clone -h           查看phgit clone命令的帮助信息，主要是[文件]格式
-@REM                    [文件]内容示例：
-@REM                    https://github.com/wowpH/demo1.git
-@REM                    https://github.com/wowpH/demo2.git
-@REM phgit命令示例：
-@REM    phgit clone url.txt 
-@REM    phgit pull
-
 :: 初始化计数器
 set /a total=0
 set /a success=0
