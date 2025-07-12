@@ -1,2 +1,1 @@
 https://github.com/wowpH/phgit.git
-https://github.com/wowpH/Lease.git
