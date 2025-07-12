@@ -1,8 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: 读取配置文件中的仓库目录, 默认为 ".\repos"
-set "repos_dir=.\repos"
+:: 读取配置文件中的仓库目录, 默认为当前目录
+set "repos_dir=."
 if exist "phgit.ini" (
     for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
         set "repos_dir=%%d"
@@ -208,13 +208,13 @@ goto end
 
 :help
 echo.
-echo 批量git脚本 v1.0
+echo 批量git脚本 v1.0.1
 echo.
 echo 用法:
 echo    phgit [^<命令^>] [选项] [参数]
 echo.
 echo 命令:
-echo    set         设置全局配置
+echo    set         设置当前目录配置,未设置则默认当前目录
 echo    clone       批量克隆
 echo    switch      批量切换分支
 echo    pull        批量拉取
