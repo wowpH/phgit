@@ -133,22 +133,32 @@ echo    phgit %1 -h
 goto end
 
 :pull
+:pull
+:: 从配置文件读取仓库目录，默认为.\repos
+set "repos_dir=.\repos"
+if exist "phgit.ini" (
+    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
+        set "repos_dir=%%d"
+    )
+)
+
 :: 初始化进度计数器
 set /a processed=0
 set /a total=0
 
 :: 先统计总仓库数
-for /d %%i in (*) do (
+for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a total+=1
     )
 )
 
 echo 开始批量拉取更新...
+echo 仓库目录: %repos_dir%
 echo 总仓库数: %total%
 echo.
 
-for /d %%i in (*) do (
+for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         set /a percent=processed*100/total
@@ -166,7 +176,7 @@ for /d %%i in (*) do (
             set /a failed+=1
             echo [失败] 拉取失败
         )
-        cd ..
+        cd /d "%~dp0"
         echo 进度: [!progress!] !percent!%%
         echo.
     )
