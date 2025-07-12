@@ -10,9 +10,8 @@ set /a failed=0
 if "%1"=="clone" goto clone
 if "%1"=="pull" goto pull
 if "%1"=="switch" goto switch
-if "%1"=="-h" goto help
-if "%1"=="help" goto help
 if "%1"=="set" goto set
+if "%1"=="-h" goto help
 
 :: 无参数或参数无效时显示帮助
 goto help
