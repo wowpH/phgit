@@ -1,19 +1,33 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: 初始化计数器
+:: 读取配置文件中的仓库目录, 默认为 ".\repos"
+set "repos_dir=.\repos"
+if exist "phgit.ini" (
+    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
+        set "repos_dir=%%d"
+    )
+)
+
+@REM 初始化总计数变量 total 为 0，该变量用于统计需要处理的 Git 仓库数量
 set /a total=0
+@REM 初始化成功计数变量 success 为 0，该变量用于统计成功处理的 Git 仓库数量
 set /a success=0
+@REM 初始化失败计数变量 failed 为 0，该变量用于统计失败处理的 Git 仓库数量
 set /a failed=0
+@REM 初始化进度计数变量 processed 为 0，该变量用于统计当前处理的 Git 仓库数量
+set /a processed=0
 
-:: 参数处理
-if "%1"=="clone" goto clone
-if "%1"=="pull" goto pull
-if "%1"=="switch" goto switch
-if "%1"=="set" goto set
-if "%1"=="delete" goto delete
-if "%1"=="-h" goto help
-
+set "VALID_COMMANDS=clone pull switch set delete -h"
+for %%i in (%VALID_COMMANDS%) do (
+    if /i "%1"=="%%i" (
+        if "%%i"=="-h" (
+            goto help
+        ) else (
+            goto %%i
+        )
+    )
+)
 :: 无参数或参数无效时显示帮助
 goto help
 
@@ -28,19 +42,8 @@ if not exist "%2" (
     goto end
 )
 
-:: 从配置文件读取仓库目录，默认为.\repos
-set "repos_dir=.\repos"
-if exist "phgit.ini" (
-    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
-        set "repos_dir=%%d"
-    )
-)
 @REM set "timestamp=%date:~0,4%%date:~5,2%%date:~8,2%_%time:~0,2%%time:~3,2%%time:~6,2%"
 @REM set "repos_dir=%repos_dir%\%timestamp%"
-
-:: 初始化进度计数器
-set /a processed=0
-set /a total=0
 
 :: 先统计总URL数
 for /f "usebackq delims=" %%i in ("%2") do (
@@ -114,19 +117,6 @@ echo    phgit %1 -h
 goto end
 
 :pull
-:pull
-:: 从配置文件读取仓库目录，默认为.\repos
-set "repos_dir=.\repos"
-if exist "phgit.ini" (
-    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
-        set "repos_dir=%%d"
-    )
-)
-
-:: 初始化进度计数器
-set /a processed=0
-set /a total=0
-
 :: 先统计总仓库数
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
@@ -174,18 +164,6 @@ goto end
 if "%2"=="-h" goto switch_help
 if "%2"=="" goto switch_help
 
-:: 从配置文件读取仓库目录，默认为.\repos
-set "repos_dir=.\repos"
-if exist "phgit.ini" (
-    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
-        set "repos_dir=%%d"
-    )
-)
-
-:: 初始化进度计数器
-set /a processed=0
-set /a total=0
-
 :: 先统计总仓库数
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
@@ -208,7 +186,7 @@ for /d %%i in ("%repos_dir%\*") do (
         
         echo 正在处理: %%i
         cd /d "%%i"
-        git checkout "%2" 2>&1
+        git switch "%2" 2>&1
         if !errorlevel! equ 0 (
             set /a success+=1
             echo [成功] 切换到分支 %2
@@ -343,14 +321,6 @@ goto end
 :: 检查是否显示删除命令帮助
 if "%2"=="-h" goto delete_help
 
-:: 从配置文件读取仓库目录，默认为.\repos
-set "repos_dir=.\repos"
-if exist "phgit.ini" (
-    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
-        set "repos_dir=%%d"
-    )
-)
-
 :: 检查仓库目录是否存在
 if not exist "%repos_dir%" (
     echo 错误: 仓库目录"%repos_dir%"不存在
@@ -363,12 +333,6 @@ if /i not "%confirm%"=="y" (
     echo 已取消删除操作
     goto end
 )
-
-:: 初始化进度计数器
-set /a processed=0
-set /a total=0
-set /a success=0
-set /a failed=0
 
 :: 先统计总仓库数
 for /d %%i in ("%repos_dir%\*") do (
