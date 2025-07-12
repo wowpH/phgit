@@ -11,6 +11,7 @@ if "%1"=="clone" goto clone
 if "%1"=="pull" goto pull
 if "%1"=="switch" goto switch
 if "%1"=="set" goto set
+if "%1"=="delete" goto delete
 if "%1"=="-h" goto help
 
 :: 无参数或参数无效时显示帮助
@@ -23,7 +24,7 @@ if "%2"=="" goto clone_help
 
 :: 检查文件是否存在
 if not exist "%2" (
-    echo 错误：文件"%2"不存在
+    echo 错误: 文件"%2"不存在
     goto end
 )
 
@@ -239,6 +240,7 @@ echo    set         设置全局配置
 echo    clone       批量克隆
 echo    switch      批量切换分支
 echo    pull        批量拉取
+echo    delete      批量删除仓库
 echo.
 echo 选项:
 echo    -h          显示帮助信息
@@ -257,7 +259,7 @@ if "%2"=="" (
 if not exist "phgit.ini" (
     echo [config] > phgit.ini
     echo ; phgit配置文件 >> phgit.ini
-    echo ; 格式：key=value >> phgit.ini
+    echo ; 格式: key=value >> phgit.ini
 )
 
 :: 设置配置项
@@ -317,6 +319,95 @@ echo.
 echo 示例:
 echo    phgit switch main      将所有仓库切换到main分支
 echo    phgit switch -h        显示switch命令的帮助信息
+goto end
+
+:delete_help
+echo.
+echo phgit delete       批量删除仓库
+echo.
+echo 用法: phgit delete [选项]
+echo.
+echo 选项:
+echo    -h              显示此帮助信息
+echo.
+echo 说明:
+echo    此命令将删除配置文件中repos目录下的所有Git仓库
+echo    操作前会提示确认，删除后无法恢复
+echo.
+echo 示例:
+echo    phgit delete           批量删除仓库
+echo    phgit delete -h        显示delete命令的帮助信息
+goto end
+
+:delete
+:: 检查是否显示删除命令帮助
+if "%2"=="-h" goto delete_help
+
+:: 从配置文件读取仓库目录，默认为.\repos
+set "repos_dir=.\repos"
+if exist "phgit.ini" (
+    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
+        set "repos_dir=%%d"
+    )
+)
+
+:: 检查仓库目录是否存在
+if not exist "%repos_dir%" (
+    echo 错误: 仓库目录"%repos_dir%"不存在
+    goto end
+)
+
+:: 确认删除操作
+set /p confirm=确定要删除"%repos_dir%"下的所有仓库吗？[y/N] 
+if /i not "%confirm%"=="y" (
+    echo 已取消删除操作
+    goto end
+)
+
+:: 初始化进度计数器
+set /a processed=0
+set /a total=0
+set /a success=0
+set /a failed=0
+
+:: 先统计总仓库数
+for /d %%i in ("%repos_dir%\*") do (
+    if exist "%%i\.git" (
+        set /a total+=1
+    )
+)
+
+echo 开始批量删除仓库...
+echo 仓库目录: %repos_dir%
+echo 总仓库数: %total%
+echo.
+
+for /d %%i in ("%repos_dir%\*") do (
+    if exist "%%i\.git" (
+        set /a processed+=1
+        set /a percent=processed*100/total
+        set "progress="
+        for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
+        for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+        
+echo 正在删除: %%~nxi
+rd /s /q "%%i"
+if !errorlevel! equ 0 (
+            set /a success+=1
+            echo [成功] 删除完成
+        ) else (
+            set /a failed+=1
+            echo [失败] 删除失败
+        )
+echo 进度: [!progress!] !percent!%%
+echo.
+    )
+)
+
+echo 删除完成:
+echo     总数: %total%
+echo     成功: %success%
+echo     失败: %failed%
 goto end
 
 :end
