@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "VER=1.0.2"
+set "VER=1.0.3"
 
 :: 读取配置文件中的仓库目录, 默认为当前目录
 set "repos_dir=."
