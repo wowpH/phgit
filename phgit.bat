@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 @REM 版本号
-set "VER=1.0.3"
+set "VER=1.0.4"
 @REM 命令列表: 默认为 clone pull switch set delete -h
 set "VALID_COMMANDS=clone pull switch set delete -h"
 
