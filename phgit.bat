@@ -86,6 +86,17 @@ goto help
     echo     失败: %failed%
     goto :eof
 
+@REM 输出操作结果
+:output_oper_result
+    if !errorlevel! equ 0 (
+        set /a success+=1
+        echo [成功] %~1
+    ) else (
+        set /a failed+=1
+        echo [失败] %~2
+    )
+    goto :eof
+
 @REM 批量克隆仓库
 :clone
 if "%2"=="-h" goto clone_help
@@ -115,13 +126,7 @@ for /f "usebackq delims=" %%i in ("%2") do (
         set "repo_name=%%~nxi"
         set "repo_name=!repo_name:.git=!"
         git clone "!url!" "%repos_dir%\!repo_name!"
-        if !errorlevel! equ 0 (
-            set /a success+=1
-            echo [成功] 克隆完成
-        ) else (
-            set /a failed+=1
-            echo [失败] 克隆失败
-        )
+        call :output_oper_result "克隆完成" "克隆失败"
         echo !progress_bar!
         echo.
     )
@@ -166,13 +171,7 @@ for /d %%i in ("%repos_dir%\*") do (
         echo 正在处理: %%i
         cd /d "%%i"
         git pull
-        if !errorlevel! equ 0 (
-            set /a success+=1
-            echo [成功] 拉取完成
-        ) else (
-            set /a failed+=1
-            echo [失败] 拉取失败
-        )
+        call :output_oper_result "拉取完成" "拉取失败"
         cd /d "%~dp0"
         echo !progress_bar!
         echo.
@@ -195,13 +194,7 @@ for /d %%i in ("%repos_dir%\*") do (
         echo 正在处理: %%i
         cd /d "%%i"
         git switch "%2" 2>&1
-        if !errorlevel! equ 0 (
-            set /a success+=1
-            echo [成功] 切换到分支 %2
-        ) else (
-            set /a failed+=1
-            echo [失败] 切换失败
-        )
+        call :output_oper_result "切换完成" "切换失败"
         cd /d "%~dp0"
         echo !progress_bar!
         echo.
@@ -342,13 +335,7 @@ for /d %%i in ("%repos_dir%\*") do (
         
         echo 正在删除: %%~nxi
         rd /s /q "%%i"
-        if !errorlevel! equ 0 (
-            set /a success+=1
-            echo [成功] 删除完成
-        ) else (
-            set /a failed+=1
-            echo [失败] 删除失败
-        )
+        call :output_oper_result "删除完成" "删除失败"
         echo !progress_bar!
         echo.
     )
