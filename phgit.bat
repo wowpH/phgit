@@ -1,26 +1,34 @@
 @echo off
 setlocal enabledelayedexpansion
 
+@REM 版本号
 set "VER=1.0.3"
+@REM 命令列表: 默认为 clone pull switch set delete -h
+set "VALID_COMMANDS=clone pull switch set delete -h"
 
-:: 读取配置文件中的仓库目录, 默认为当前目录
+@REM 仓库目录: 默认为当前目录
 set "repos_dir=."
+@REM 仓库数量: 默认为 0
+set /a total=0
+@REM 成功数量: 默认为 0
+set /a success=0
+@REM 失败数量: 默认为 0
+set /a failed=0
+@REM 进度数量: 默认为 0
+set /a processed=0
+@REM 进度条字符串: 默认为空
+set "progress_bar="
+@REM 进度条长度: 默认为 50
+set /a progress_bar_len=50
+
+@REM 读取配置文件中的仓库目录, 默认为当前目录
 if exist "phgit.ini" (
     for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
         set "repos_dir=%%d"
     )
 )
 
-@REM 初始化总计数变量 total 为 0，该变量用于统计需要处理的 Git 仓库数量
-set /a total=0
-@REM 初始化成功计数变量 success 为 0，该变量用于统计成功处理的 Git 仓库数量
-set /a success=0
-@REM 初始化失败计数变量 failed 为 0，该变量用于统计失败处理的 Git 仓库数量
-set /a failed=0
-@REM 初始化进度计数变量 processed 为 0，该变量用于统计当前处理的 Git 仓库数量
-set /a processed=0
-
-set "VALID_COMMANDS=clone pull switch set delete -h"
+@REM 解析 phgit 命令参数
 for %%i in (%VALID_COMMANDS%) do (
     if /i "%1"=="%%i" (
         if "%%i"=="-h" (
@@ -30,20 +38,25 @@ for %%i in (%VALID_COMMANDS%) do (
         )
     )
 )
-:: 无参数或参数无效时显示帮助
+@REM 无参数或参数无效时显示帮助
 goto help
 
-:: 进度条公共函数: 根据百分比生成进度条字符串
-:: 参数: %1=当前百分比(0-100)
-:: 输出: 全局变量 progress_bar
+@REM 进度条公共函数: 根据百分比生成进度条字符串
+@REM    输出: 全局变量 progress_bar
 :create_progress_bar
     setlocal enabledelayedexpansion
-    set "percent=%1"
+    @REM 进度百分比值, 0-100
+    set /a percent=processed*100/total
+    @REM 已完成进度条长度
+    set /a completed_len=processed*progress_bar_len/total
+    @REM 进度条字符串
     set "progress="
-    for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
-    for /l %%p in (!percent!,1,99) do set "progress=!progress! "
-    :: 将结果传递到全局变量
-    endlocal & set "progress_bar=%progress%"
+    for /l %%p in (1,1,!completed_len!) do set "progress=!progress!█"
+    @REM 未完成进度条开始位置
+    set /a unfinished_start=completed_len+1
+    for /l %%p in (!unfinished_start!,1,!progress_bar_len!) do set "progress=!progress! "
+    @REM 将结果传递到全局变量
+    endlocal & set "progress_bar=进度: [%progress%] %percent%%%"
     goto :eof
 
 @REM 统计仓库数量
@@ -55,36 +68,47 @@ goto help
     )
     goto :eof
 
+@REM 显示操作提示信息
+:show_oper_info
+    echo.
+    echo %~1
+    echo     目录: %repos_dir%
+    echo     总数: %total%
+    echo.
+    goto :eof
+
+@REM 显示操作完成信息
+:show_oper_complete_info
+    echo %~1
+    echo     目录: %repos_dir%
+    echo     总数: %total%
+    echo     成功: %success%
+    echo     失败: %failed%
+    goto :eof
+
+@REM 批量克隆仓库
 :clone
-:: 检查是否显示克隆命令帮助
 if "%2"=="-h" goto clone_help
 if "%2"=="" goto clone_help
-
-:: 检查文件是否存在
+@REM 检查文件是否存在
 if not exist "%2" (
     echo 错误: 文件"%2"不存在
     goto end
 )
-
-:: 先统计总URL数
+@REM 统计传入文件中的URL数量
 for /f "usebackq delims=" %%i in ("%2") do (
     set "url=%%i"
     if not "!url!"=="" (
         set /a total+=1
     )
 )
-
-echo 开始批量克隆仓库...
-echo 仓库目录: %repos_dir%
-echo 总仓库数: %total%
-echo.
-
+call :show_oper_info "开始批量克隆仓库..."
 for /f "usebackq delims=" %%i in ("%2") do (
     set "url=%%i"
     if not "!url!"=="" (
         set /a processed+=1
-        set /a percent=processed*100/total
-        call :create_progress_bar !percent!
+        set /a percent=processed*progress_bar_len/total
+        call :create_progress_bar
         
         echo 正在克隆: !url!
         @REM 克隆到指定目录
@@ -98,15 +122,11 @@ for /f "usebackq delims=" %%i in ("%2") do (
             set /a failed+=1
             echo [失败] 克隆失败
         )
-        echo 进度: [!progress_bar!] !percent!%%
+        echo !progress_bar!
         echo.
     )
 )
-
-echo 克隆完成:
-echo     总数: %total%
-echo     成功: %success%
-echo     失败: %failed%
+call :show_oper_complete_info "批量克隆完成"
 goto end
 
 :clone_help
@@ -137,17 +157,11 @@ goto end
 
 :pull
 call :count_repos
-
-echo 开始批量拉取更新...
-echo 仓库目录: %repos_dir%
-echo 总仓库数: %total%
-echo.
-
+call :show_oper_info "开始批量拉取更新..."
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
-        set /a percent=processed*100/total
-        call :create_progress_bar !percent!
+        call :create_progress_bar
         
         echo 正在处理: %%i
         cd /d "%%i"
@@ -160,34 +174,23 @@ for /d %%i in ("%repos_dir%\*") do (
             echo [失败] 拉取失败
         )
         cd /d "%~dp0"
-        echo 进度: [!progress_bar!] !percent!%%
+        echo !progress_bar!
         echo.
     )
 )
-
-echo 拉取完成:
-echo     总数: %total%
-echo     成功: %success%
-echo     失败: %failed%
+call :show_oper_complete_info "批量拉取完成"
 goto end
 
 :switch
 :: 检查分支参数是否提供
 if "%2"=="-h" goto switch_help
 if "%2"=="" goto switch_help
-
 call :count_repos
-
-echo 开始批量切换分支到: %2
-echo 仓库目录: %repos_dir%
-echo 总仓库数: %total%
-echo.
-
+call :show_oper_info "开始批量切换分支到: %2"
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
-        set /a percent=processed*100/total
-        call :create_progress_bar !percent!
+        call :create_progress_bar
         
         echo 正在处理: %%i
         cd /d "%%i"
@@ -200,15 +203,11 @@ for /d %%i in ("%repos_dir%\*") do (
             echo [失败] 切换失败
         )
         cd /d "%~dp0"
-        echo 进度: [!progress_bar!] !percent!%%
+        echo !progress_bar!
         echo.
     )
 )
-
-echo 分支切换完成:
-echo     总数: %total%
-echo     成功: %success%
-echo     失败: %failed%
+call :show_oper_complete_info "分支切换完成"
 goto end
 
 :help
@@ -233,19 +232,13 @@ goto end
 :set
 :: 检查是否显示set命令帮助
 if "%2"=="-h" goto set_help
-
-:: 检查参数是否提供
-if "%2"=="" (
-    goto set_help
-)
-
+if "%2"=="" goto set_help
 :: 创建配置文件
 if not exist "phgit.ini" (
     echo [config] > phgit.ini
     echo ; phgit配置文件 >> phgit.ini
     echo ; 格式: key=value >> phgit.ini
 )
-
 :: 设置配置项
 if "%3"=="" (
     echo 错误: 缺少value参数
@@ -263,7 +256,6 @@ if "%3"=="" (
     echo %2=!value!>> phgit.ini
     echo [成功] 已设置 %2=!value!
 )
-
 goto end
 
 :set_help
@@ -341,17 +333,12 @@ if /i not "%confirm%"=="y" (
 )
 
 call :count_repos
-
-echo 开始批量删除仓库...
-echo 仓库目录: %repos_dir%
-echo 总仓库数: %total%
-echo.
+call :show_oper_info "开始批量删除仓库..."
 
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
-        set /a percent=processed*100/total
-        call :create_progress_bar !percent!
+        call :create_progress_bar
         
         echo 正在删除: %%~nxi
         rd /s /q "%%i"
@@ -362,15 +349,11 @@ for /d %%i in ("%repos_dir%\*") do (
             set /a failed+=1
             echo [失败] 删除失败
         )
-        echo 进度: [!progress_bar!] !percent!%%
+        echo !progress_bar!
         echo.
     )
 )
-
-echo 删除完成:
-echo     总数: %total%
-echo     成功: %success%
-echo     失败: %failed%
+call :show_oper_complete_info "删除完成"
 goto end
 
 :end
