@@ -45,18 +45,20 @@ goto help
 @REM    输出: 全局变量 progress_bar
 :create_progress_bar
     setlocal enabledelayedexpansion
+    set "progress_char=■"
+    set "empty_char=□"
     @REM 进度百分比值, 0-100
     set /a percent=processed*100/total
     @REM 已完成进度条长度
     set /a completed_len=processed*progress_bar_len/total
     @REM 进度条字符串
     set "progress="
-    for /l %%p in (1,1,!completed_len!) do set "progress=!progress!█"
+    for /l %%p in (1,1,!completed_len!) do set "progress=!progress!%progress_char%"
     @REM 未完成进度条开始位置
     set /a unfinished_start=completed_len+1
-    for /l %%p in (!unfinished_start!,1,!progress_bar_len!) do set "progress=!progress! "
+    for /l %%p in (!unfinished_start!,1,!progress_bar_len!) do set "progress=!progress!%empty_char%"
     @REM 将结果传递到全局变量
-    endlocal & set "progress_bar=进度: [%progress%] %percent%%%"
+    endlocal & set "progress_bar=进度: %progress% %percent%%%"
     goto :eof
 
 @REM 统计仓库数量
