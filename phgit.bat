@@ -210,18 +210,18 @@ goto end
 
 :help
 echo.
-echo 批量git脚本 v%VER%
+echo 批量Git脚本 v%VER%
 
 echo.
 echo 用法:
 echo    phgit [^<命令^>] [选项] [参数]
 echo.
 echo 命令:
-echo    set         设置当前目录配置,未设置则默认当前目录
 echo    clone       批量克隆
-echo    switch      批量切换分支
+echo    delete      批量删除仓库,仅删除Git仓库目录
 echo    pull        批量拉取
-echo    delete      批量删除仓库
+echo    set         设置当前目录配置,未设置则默认当前目录
+echo    switch      批量切换分支
 echo.
 echo 选项:
 echo    -h          显示帮助信息
