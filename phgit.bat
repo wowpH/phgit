@@ -46,6 +46,15 @@ goto help
     endlocal & set "progress_bar=%progress%"
     goto :eof
 
+@REM 统计仓库数量
+:count_repos
+    for /d %%i in ("%repos_dir%\*") do (
+        if exist "%%i\.git" (
+            set /a total+=1
+        )
+    )
+    goto :eof
+
 :clone
 :: 检查是否显示克隆命令帮助
 if "%2"=="-h" goto clone_help
@@ -76,9 +85,6 @@ for /f "usebackq delims=" %%i in ("%2") do (
         set /a processed+=1
         set /a percent=processed*100/total
         call :create_progress_bar !percent!
-        @REM set "progress="
-        @REM for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
-        @REM for /l %%p in (!percent!,1,99) do set "progress=!progress! "
         
         echo 正在克隆: !url!
         @REM 克隆到指定目录
@@ -130,12 +136,7 @@ echo    phgit %1 -h
 goto end
 
 :pull
-:: 先统计总仓库数
-for /d %%i in ("%repos_dir%\*") do (
-    if exist "%%i\.git" (
-        set /a total+=1
-    )
-)
+call :count_repos
 
 echo 开始批量拉取更新...
 echo 仓库目录: %repos_dir%
@@ -175,12 +176,7 @@ goto end
 if "%2"=="-h" goto switch_help
 if "%2"=="" goto switch_help
 
-:: 先统计总仓库数
-for /d %%i in ("%repos_dir%\*") do (
-    if exist "%%i\.git" (
-        set /a total+=1
-    )
-)
+call :count_repos
 
 echo 开始批量切换分支到: %2
 echo 仓库目录: %repos_dir%
@@ -344,12 +340,7 @@ if /i not "%confirm%"=="y" (
     goto end
 )
 
-:: 先统计总仓库数
-for /d %%i in ("%repos_dir%\*") do (
-    if exist "%%i\.git" (
-        set /a total+=1
-    )
-)
+call :count_repos
 
 echo 开始批量删除仓库...
 echo 仓库目录: %repos_dir%
@@ -362,17 +353,17 @@ for /d %%i in ("%repos_dir%\*") do (
         set /a percent=processed*100/total
         call :create_progress_bar !percent!
         
-echo 正在删除: %%~nxi
-rd /s /q "%%i"
-if !errorlevel! equ 0 (
+        echo 正在删除: %%~nxi
+        rd /s /q "%%i"
+        if !errorlevel! equ 0 (
             set /a success+=1
             echo [成功] 删除完成
         ) else (
             set /a failed+=1
             echo [失败] 删除失败
         )
-echo 进度: [!progress_bar!] !percent!%%
-echo.
+        echo 进度: [!progress_bar!] !percent!%%
+        echo.
     )
 )
 
