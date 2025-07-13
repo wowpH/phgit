@@ -33,6 +33,19 @@ for %%i in (%VALID_COMMANDS%) do (
 :: 无参数或参数无效时显示帮助
 goto help
 
+:: 进度条公共函数: 根据百分比生成进度条字符串
+:: 参数: %1=当前百分比(0-100)
+:: 输出: 全局变量 progress_bar
+:create_progress_bar
+    setlocal enabledelayedexpansion
+    set "percent=%1"
+    set "progress="
+    for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
+    for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+    :: 将结果传递到全局变量
+    endlocal & set "progress_bar=%progress%"
+    goto :eof
+
 :clone
 :: 检查是否显示克隆命令帮助
 if "%2"=="-h" goto clone_help
@@ -43,9 +56,6 @@ if not exist "%2" (
     echo 错误: 文件"%2"不存在
     goto end
 )
-
-@REM set "timestamp=%date:~0,4%%date:~5,2%%date:~8,2%_%time:~0,2%%time:~3,2%%time:~6,2%"
-@REM set "repos_dir=%repos_dir%\%timestamp%"
 
 :: 先统计总URL数
 for /f "usebackq delims=" %%i in ("%2") do (
@@ -65,9 +75,10 @@ for /f "usebackq delims=" %%i in ("%2") do (
     if not "!url!"=="" (
         set /a processed+=1
         set /a percent=processed*100/total
-        set "progress="
-        for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
-        for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+        call :create_progress_bar !percent!
+        @REM set "progress="
+        @REM for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
+        @REM for /l %%p in (!percent!,1,99) do set "progress=!progress! "
         
         echo 正在克隆: !url!
         @REM 克隆到指定目录
@@ -81,7 +92,7 @@ for /f "usebackq delims=" %%i in ("%2") do (
             set /a failed+=1
             echo [失败] 克隆失败
         )
-        echo 进度: [!progress!] !percent!%%
+        echo 进度: [!progress_bar!] !percent!%%
         echo.
     )
 )
@@ -135,9 +146,7 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         set /a percent=processed*100/total
-        set "progress="
-        for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
-        for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+        call :create_progress_bar !percent!
         
         echo 正在处理: %%i
         cd /d "%%i"
@@ -150,7 +159,7 @@ for /d %%i in ("%repos_dir%\*") do (
             echo [失败] 拉取失败
         )
         cd /d "%~dp0"
-        echo 进度: [!progress!] !percent!%%
+        echo 进度: [!progress_bar!] !percent!%%
         echo.
     )
 )
@@ -182,9 +191,7 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         set /a percent=processed*100/total
-        set "progress="
-        for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
-        for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+        call :create_progress_bar !percent!
         
         echo 正在处理: %%i
         cd /d "%%i"
@@ -197,7 +204,7 @@ for /d %%i in ("%repos_dir%\*") do (
             echo [失败] 切换失败
         )
         cd /d "%~dp0"
-        echo 进度: [!progress!] !percent!%%
+        echo 进度: [!progress_bar!] !percent!%%
         echo.
     )
 )
@@ -353,9 +360,7 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         set /a percent=processed*100/total
-        set "progress="
-        for /l %%p in (1,1,!percent!) do set "progress=!progress!█"
-        for /l %%p in (!percent!,1,99) do set "progress=!progress! "
+        call :create_progress_bar !percent!
         
 echo 正在删除: %%~nxi
 rd /s /q "%%i"
@@ -366,7 +371,7 @@ if !errorlevel! equ 0 (
             set /a failed+=1
             echo [失败] 删除失败
         )
-echo 进度: [!progress!] !percent!%%
+echo 进度: [!progress_bar!] !percent!%%
 echo.
     )
 )
