@@ -97,43 +97,7 @@ goto help
     )
     goto :eof
 
-@REM 批量克隆仓库
-:clone
-if "%2"=="-h" goto clone_help
-if "%2"=="" goto clone_help
-@REM 检查文件是否存在
-if not exist "%2" (
-    echo 错误: 文件"%2"不存在
-    goto end
-)
-@REM 统计传入文件中的URL数量
-for /f "usebackq delims=" %%i in ("%2") do (
-    set "url=%%i"
-    if not "!url!"=="" (
-        set /a total+=1
-    )
-)
-call :show_oper_info "开始批量克隆仓库..."
-for /f "usebackq delims=" %%i in ("%2") do (
-    set "url=%%i"
-    if not "!url!"=="" (
-        set /a processed+=1
-        set /a percent=processed*progress_bar_len/total
-        call :create_progress_bar
-        
-        echo 正在克隆: !url!
-        @REM 克隆到指定目录
-        set "repo_name=%%~nxi"
-        set "repo_name=!repo_name:.git=!"
-        git clone "!url!" "%repos_dir%\!repo_name!"
-        call :output_oper_result "克隆完成" "克隆失败"
-        echo !progress_bar!
-        echo.
-    )
-)
-call :show_oper_complete_info "批量克隆完成"
-goto end
-
+@REM 显示clone命令帮助信息
 :clone_help
 echo.
 echo phgit %1       批量克隆Git仓库
@@ -160,6 +124,92 @@ echo    phgit %1 url.txt
 echo    phgit %1 -h
 goto end
 
+@REM 批量克隆仓库
+:clone
+if "%2"=="-h" goto clone_help
+if "%2"=="" goto clone_help
+@REM 检查文件是否存在
+if not exist "%2" (
+    echo 错误: 文件"%2"不存在
+    goto end
+)
+@REM 统计传入文件中的URL数量
+for /f "usebackq delims=" %%i in ("%2") do (
+    set "url=%%i"
+    if not "!url!"=="" (
+        set /a total+=1
+    )
+)
+call :show_oper_info "开始批量克隆仓库..."
+for /f "usebackq delims=" %%i in ("%2") do (
+    set "url=%%i"
+    if not "!url!"=="" (
+        set /a processed+=1
+        set /a percent=processed*progress_bar_len/total
+        call :create_progress_bar
+        echo 正在克隆: !url!
+        @REM 克隆到指定目录
+        set "repo_name=%%~nxi"
+        set "repo_name=!repo_name:.git=!"
+        git clone "!url!" "%repos_dir%\!repo_name!"
+        call :output_oper_result "克隆完成" "克隆失败"
+        echo !progress_bar!
+        echo.
+    )
+)
+call :show_oper_complete_info "批量克隆完成"
+goto end
+
+@REM 显示delete命令帮助信息
+:delete_help
+echo.
+echo phgit delete       批量删除仓库
+echo.
+echo 用法: phgit delete [选项]
+echo.
+echo 选项:
+echo    -h              显示此帮助信息
+echo.
+echo 说明:
+echo    此命令将删除配置文件中repos目录下的所有Git仓库
+echo    操作前会提示确认，删除后无法恢复
+echo.
+echo 示例:
+echo    phgit delete           批量删除仓库
+echo    phgit delete -h        显示delete命令的帮助信息
+goto end
+
+:delete
+:: 检查是否显示删除命令帮助
+if "%2"=="-h" goto delete_help
+:: 检查仓库目录是否存在
+if not exist "%repos_dir%" (
+    echo 错误: 仓库目录"%repos_dir%"不存在
+    goto end
+)
+:: 确认删除操作
+set /p confirm=确定要删除"%repos_dir%"下的所有仓库吗？[y/N] 
+if /i not "%confirm%"=="y" (
+    echo 已取消删除操作
+    goto end
+)
+call :count_repos
+call :show_oper_info "开始批量删除仓库..."
+for /d %%i in ("%repos_dir%\*") do (
+    if exist "%%i\.git" (
+        set /a processed+=1
+        call :create_progress_bar
+        
+        echo 正在删除: %%~nxi
+        rd /s /q "%%i"
+        call :output_oper_result "删除完成" "删除失败"
+        echo !progress_bar!
+        echo.
+    )
+)
+call :show_oper_complete_info "删除完成"
+goto end
+
 :pull
 call :count_repos
 call :show_oper_info "开始批量拉取更新..."
@@ -167,7 +217,6 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         call :create_progress_bar
-        
         echo 正在处理: %%i
         cd /d "%%i"
         git pull
@@ -180,77 +229,7 @@ for /d %%i in ("%repos_dir%\*") do (
 call :show_oper_complete_info "批量拉取完成"
 goto end
 
-:switch
-:: 检查分支参数是否提供
-if "%2"=="-h" goto switch_help
-if "%2"=="" goto switch_help
-call :count_repos
-call :show_oper_info "开始批量切换分支到: %2"
-for /d %%i in ("%repos_dir%\*") do (
-    if exist "%%i\.git" (
-        set /a processed+=1
-        call :create_progress_bar
-        
-        echo 正在处理: %%i
-        cd /d "%%i"
-        git switch "%2" 2>&1
-        call :output_oper_result "切换完成" "切换失败"
-        cd /d "%~dp0"
-        echo !progress_bar!
-        echo.
-    )
-)
-call :show_oper_complete_info "分支切换完成"
-goto end
-
-:help
-echo.
-echo 批量Git脚本 v%VER%
-
-echo.
-echo 用法:
-echo    phgit [^<命令^>] [选项] [参数]
-echo.
-echo 命令:
-echo    clone       批量克隆
-echo    delete      批量删除仓库,仅删除Git仓库目录
-echo    pull        批量拉取
-echo    set         设置当前目录配置,未设置则默认当前目录
-echo    switch      批量切换分支
-echo.
-echo 选项:
-echo    -h          显示帮助信息
-goto end
-
-:set
-:: 检查是否显示set命令帮助
-if "%2"=="-h" goto set_help
-if "%2"=="" goto set_help
-:: 创建配置文件
-if not exist "phgit.ini" (
-    echo [config] > phgit.ini
-    echo ; phgit配置文件 >> phgit.ini
-    echo ; 格式: key=value >> phgit.ini
-)
-:: 设置配置项
-if "%3"=="" (
-    echo 错误: 缺少value参数
-    goto set_help
-) else (
-    :: 去除value前后的空格
-    set "value=%3"
-    for /f "tokens=*" %%a in ("!value!") do set "value=%%a"
-    
-    :: 先删除已有的key
-    findstr /v "%2=" phgit.ini > phgit.tmp
-    move /y phgit.tmp phgit.ini > nul
-    
-    :: 添加新的key=value
-    echo %2=!value!>> phgit.ini
-    echo [成功] 已设置 %2=!value!
-)
-goto end
-
+@REM 显示set命令帮助信息
 :set_help
 echo.
 echo phgit set                      管理phgit配置
@@ -273,6 +252,34 @@ echo    phgit set repos .\repos     设置仓库目录为当前目录的repos子目录
 echo    phgit set -h                显示set命令的帮助信息
 goto end
 
+:set
+:: 检查是否显示set命令帮助
+if "%2"=="-h" goto set_help
+if "%2"=="" goto set_help
+:: 创建配置文件
+if not exist "phgit.ini" (
+    echo [config] > phgit.ini
+    echo ; phgit配置文件 >> phgit.ini
+    echo ; 格式: key=value >> phgit.ini
+)
+:: 设置配置项
+if "%3"=="" (
+    echo 错误: 缺少value参数
+    goto set_help
+) else (
+    :: 去除value前后的空格
+    set "value=%3"
+    for /f "tokens=*" %%a in ("!value!") do set "value=%%a"
+    :: 先删除已有的key
+    findstr /v "%2=" phgit.ini > phgit.tmp
+    move /y phgit.tmp phgit.ini > nul
+    :: 添加新的key=value
+    echo %2=!value!>> phgit.ini
+    echo [成功] 已设置 %2=!value!
+)
+goto end
+
+@REM 显示switch命令帮助信息
 :switch_help
 echo.
 echo phgit switch       批量切换分支
@@ -290,57 +297,45 @@ echo    phgit switch main      将所有仓库切换到main分支
 echo    phgit switch -h        显示switch命令的帮助信息
 goto end
 
-:delete_help
-echo.
-echo phgit delete       批量删除仓库
-echo.
-echo 用法: phgit delete [选项]
-echo.
-echo 选项:
-echo    -h              显示此帮助信息
-echo.
-echo 说明:
-echo    此命令将删除配置文件中repos目录下的所有Git仓库
-echo    操作前会提示确认，删除后无法恢复
-echo.
-echo 示例:
-echo    phgit delete           批量删除仓库
-echo    phgit delete -h        显示delete命令的帮助信息
-goto end
-
-:delete
-:: 检查是否显示删除命令帮助
-if "%2"=="-h" goto delete_help
-
-:: 检查仓库目录是否存在
-if not exist "%repos_dir%" (
-    echo 错误: 仓库目录"%repos_dir%"不存在
-    goto end
-)
-
-:: 确认删除操作
-set /p confirm=确定要删除"%repos_dir%"下的所有仓库吗？[y/N] 
-if /i not "%confirm%"=="y" (
-    echo 已取消删除操作
-    goto end
-)
-
+:switch
+:: 检查分支参数是否提供
+if "%2"=="-h" goto switch_help
+if "%2"=="" goto switch_help
 call :count_repos
-call :show_oper_info "开始批量删除仓库..."
-
+call :show_oper_info "开始批量切换分支到: %2"
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         set /a processed+=1
         call :create_progress_bar
-        
-        echo 正在删除: %%~nxi
-        rd /s /q "%%i"
-        call :output_oper_result "删除完成" "删除失败"
+        echo 正在处理: %%i
+        cd /d "%%i"
+        git switch "%2" 2>&1
+        call :output_oper_result "切换完成" "切换失败"
+        cd /d "%~dp0"
         echo !progress_bar!
         echo.
     )
 )
-call :show_oper_complete_info "删除完成"
+call :show_oper_complete_info "分支切换完成"
+goto end
+
+@REM 显示帮助信息
+:help
+echo.
+echo 批量Git脚本 v%VER%
+echo.
+echo 用法:
+echo    phgit [^<命令^>] [选项] [参数]
+echo.
+echo 命令:
+echo    clone       批量克隆
+echo    delete      批量删除仓库,仅删除Git仓库目录
+echo    pull        批量拉取
+echo    set         设置当前目录配置,未设置则默认当前目录
+echo    switch      批量切换分支
+echo.
+echo 选项:
+echo    -h          显示帮助信息
 goto end
 
 :end
