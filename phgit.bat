@@ -132,7 +132,6 @@ if "%2"=="-h" goto clone_help
 if "%2"=="" goto clone_help
 @REM 检查文件是否存在
 set "file=%~f2"
-echo 检查文件: !file!
 if not exist "!file!" (
     echo 错误: 文件"%2"不存在
     goto end
