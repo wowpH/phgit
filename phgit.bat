@@ -131,19 +131,21 @@ goto end
 if "%2"=="-h" goto clone_help
 if "%2"=="" goto clone_help
 @REM 检查文件是否存在
-if not exist "%2" (
+set "file=%~f2"
+echo 检查文件: !file!
+if not exist "!file!" (
     echo 错误: 文件"%2"不存在
     goto end
 )
 @REM 统计传入文件中的URL数量
-for /f "usebackq delims=" %%i in ("%2") do (
+for /f "usebackq delims=" %%i in ("!file!") do (
     set "url=%%i"
     if not "!url!"=="" (
         set /a total+=1
     )
 )
 call :show_oper_info "开始批量克隆仓库..."
-for /f "usebackq delims=" %%i in ("%2") do (
+for /f "usebackq delims=" %%i in ("!file!") do (
     set "url=%%i"
     if not "!url!"=="" (
         set /a processed+=1
