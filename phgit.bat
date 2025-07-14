@@ -4,10 +4,8 @@ setlocal enabledelayedexpansion
 @REM 版本号
 set "VER=1.1.0"
 @REM 命令列表: 默认为 clone pull switch set delete -h
-set "VALID_COMMANDS=clone pull switch set delete -h"
+set "VALID_COMMANDS=clone pull switch set delete -h -i"
 
-@REM 仓库目录: 默认为当前目录
-set "repos_dir=."
 @REM 仓库数量: 默认为 0
 set /a total=0
 @REM 成功数量: 默认为 0
@@ -20,11 +18,27 @@ set /a processed=0
 set "progress_bar="
 @REM 进度条长度: 默认为 50
 set /a progress_bar_len=50
+@REM 脚本目录
+set "script_dir=%~dp0"
+@REM 当前目录
+set "work_dir=%cd%"
+@REM 配置文件目录: 默认为脚本目录
+set "config_dir=%script_dir%"
+@REM 配置文件路径: 默认为配置文件目录下的 phgit.ini
+set "config_file=%config_dir%phgit.ini"
+@REM 仓库目录: 默认为当前目录
+set "repos_dir=%work_dir%"
 
-@REM 读取配置文件中的仓库目录, 默认为当前目录
-if exist "phgit.ini" (
-    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" phgit.ini') do (
-        set "repos_dir=%%d"
+@REM 读取配置文件中的仓库目录, 默认为脚本目录
+if exist "%config_file%" (
+    for /f "tokens=2 delims==" %%d in ('findstr "^repos=" "%config_file%"') do (
+        if "%%d"=="%%~fd" (
+            set "repos_dir=%%d"
+        ) else (
+            set "repos_dir=%work_dir%\%%d"
+        )
+        for %%p in ("!repos_dir!") do set "repos_dir=%%~fp"
+        if "!repos_dir:~-1!"=="\" set "repos_dir=!repos_dir:~0,-1!"
     )
 )
 
@@ -33,6 +47,8 @@ for %%i in (%VALID_COMMANDS%) do (
     if /i "%1"=="%%i" (
         if "%%i"=="-h" (
             goto help
+        ) else if "%%i"=="-i" (
+            goto info
         ) else (
             goto %%i
         )
@@ -260,10 +276,10 @@ goto end
 if "%2"=="-h" goto set_help
 if "%2"=="" goto set_help
 :: 创建配置文件
-if not exist "phgit.ini" (
-    echo [config] > phgit.ini
-    echo ; phgit配置文件 >> phgit.ini
-    echo ; 格式: key=value >> phgit.ini
+if not exist "%config_file%" (
+    echo [config] > "%config_file%"
+    echo ; phgit配置文件 >> "%config_file%"
+    echo ; 格式: key=value >> "%config_file%"
 )
 :: 设置配置项
 if "%3"=="" (
@@ -274,10 +290,10 @@ if "%3"=="" (
     set "value=%3"
     for /f "tokens=*" %%a in ("!value!") do set "value=%%a"
     :: 先删除已有的key
-    findstr /v "%2=" phgit.ini > phgit.tmp
-    move /y phgit.tmp phgit.ini > nul
+    findstr /v "%2=" "%config_file%" > "%config_file%.tmp"
+    move /y "%config_file%.tmp" "%config_file%" > nul
     :: 添加新的key=value
-    echo %2=!value!>> phgit.ini
+    echo %2=!value!>> "%config_file%"
     echo [成功] 已设置 %2=!value!
 )
 goto end
@@ -339,6 +355,17 @@ echo    switch      批量切换分支
 echo.
 echo 选项:
 echo    -h          显示帮助信息
+echo    -i          显示详细信息
+goto end
+
+@REM 添加info标签显示信息
+:info
+echo.
+echo phgit版本: %VER%
+echo  安装目录: %script_dir%
+echo  当前目录: %work_dir%
+echo  仓库目录: %repos_dir%
+echo  配置文件: %config_file%
 goto end
 
 :end
