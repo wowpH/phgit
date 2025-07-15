@@ -71,6 +71,13 @@ for %%i in (%COMMANDS%) do (
 @REM 无参数或参数无效时显示帮助
 goto help
 
+@REM 输出进度条
+:output_progress_bar
+    call :create_progress_bar
+    echo %progress_bar%
+    echo.
+    goto :eof
+
 @REM 进度条公共函数: 根据百分比生成进度条字符串
 @REM    输出: 全局变量 progress_bar
 :create_progress_bar
@@ -124,16 +131,16 @@ goto help
 :show_oper_info
     echo.
     echo %~1
-    echo     目录: %repos_dir%
-    echo     总数: %git_repos_count%
+    echo 仓库目录: %repos_dir%
+    echo 仓库数量: %git_repos_count%
     echo.
     goto :eof
 
 @REM 显示操作完成信息
 :show_oper_complete_info
     echo %~1
-    echo     目录: %repos_dir%
-    echo     总数: %git_repos_count%
+    echo 仓库目录: %repos_dir%
+    echo 仓库数量: %git_repos_count%
     echo     成功: %success%
     echo     失败: %failed%
     goto :eof
@@ -180,7 +187,6 @@ goto end
 :clone
 if "%2"=="-h" goto clone_help
 if "%2"=="" goto clone_help
-@REM 检查文件是否存在
 set "file=%~f2"
 @REM 统计传入文件中的URL数量
 call :count_repos "!file!"
@@ -188,17 +194,14 @@ call :show_oper_info "开始批量克隆仓库..."
 for /f "usebackq delims=" %%i in ("!file!") do (
     set "url=%%i"
     if not "!url!"=="" (
-        set /a processed+=1
-        set /a percent=processed*progress_bar_len/git_repos_count
-        call :create_progress_bar
         echo 正在克隆: !url!
         @REM 克隆到指定目录
         set "repo_name=%%~nxi"
         set "repo_name=!repo_name:.git=!"
         git clone "!url!" "%repos_dir%\!repo_name!"
         call :output_oper_result "克隆完成" "克隆失败"
-        echo !progress_bar!
-        echo.
+        set /a processed+=1
+        call :output_progress_bar
     )
 )
 call :show_oper_complete_info "批量克隆完成"
@@ -224,15 +227,13 @@ echo    phgit delete -h        显示delete命令的帮助信息
 goto end
 
 :delete
-:: 检查是否显示删除命令帮助
 if "%2"=="-h" goto delete_help
-:: 检查仓库目录是否存在
 if not exist "%repos_dir%" (
     echo 错误: 仓库目录"%repos_dir%"不存在
     goto end
 )
-:: 确认删除操作
-set /p confirm=确定要删除"%repos_dir%"下的所有仓库吗？[y/N] 
+@REM 确认删除操作
+set /p confirm=确定要删除"%repos_dir%"下的所有仓库吗？[y/n] 
 if /i not "%confirm%"=="y" (
     echo 已取消删除操作
     goto end
@@ -240,14 +241,17 @@ if /i not "%confirm%"=="y" (
 call :show_oper_info "开始批量删除仓库..."
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
-        set /a processed+=1
-        call :create_progress_bar
-        
         echo 正在删除: %%~nxi
         rd /s /q "%%i"
-        call :output_oper_result "删除完成" "删除失败"
-        echo !progress_bar!
-        echo.
+        if exist "%%i" (
+            echo [失败] 删除失败
+            set /a failed+=1
+        ) else (
+            echo [成功] 删除成功
+            set /a success+=1
+        )
+        set /a processed+=1
+        call :output_progress_bar
     )
 )
 call :show_oper_complete_info "删除完成"
@@ -257,15 +261,12 @@ goto end
 call :show_oper_info "开始批量拉取更新..."
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
-        set /a processed+=1
-        call :create_progress_bar
-        echo 正在处理: %%i
+        echo 正在拉取: %%i
         cd /d "%%i"
         git pull
         call :output_oper_result "拉取完成" "拉取失败"
-        cd /d "%~dp0"
-        echo !progress_bar!
-        echo.
+        set /a processed+=1
+        call :output_progress_bar
     )
 )
 call :show_oper_complete_info "批量拉取完成"
@@ -346,15 +347,12 @@ if "%2"=="" goto switch_help
 call :show_oper_info "开始批量切换分支到: %2"
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
-        set /a processed+=1
-        call :create_progress_bar
-        echo 正在处理: %%i
+        echo 正在切换: %%i
         cd /d "%%i"
         git switch "%2" 2>&1
         call :output_oper_result "切换完成" "切换失败"
-        cd /d "%~dp0"
-        echo !progress_bar!
-        echo.
+        set /a processed+=1
+        call :output_progress_bar
     )
 )
 call :show_oper_complete_info "分支切换完成"
@@ -392,6 +390,15 @@ if exist "%config_file%" (
     echo  配置文件: %config_file%
 )
 echo  仓库数量: %git_repos_count%
+goto end
+
+@REM 输出版本信息
+:version
+echo.
+echo 项目名称: phgit
+echo   版本号: %VER%
+echo     作者: pH
+echo 项目地址: https://github.com/wowpH/phgit.git
 goto end
 
 :end
