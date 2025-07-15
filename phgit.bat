@@ -93,23 +93,27 @@ goto help
 
 @REM 统计仓库数量
 :count_repos
-    @REM 支持传入仓库文件
     if "%1"=="" (
+        @REM 统计仓库目录中的仓库数量
         for /d %%i in ("%repos_dir%\*") do (
+            @REM 遍历仓库目录的子目录
             if exist "%%i\.git" (
+                @REM 目录是Git仓库, 数量加 1
                 set /a git_repos_count+=1
             )
         )
     ) else (
-        echo 统计传入文件中的仓库数量
+        @REM 统计传入文件中的仓库数量
         set "file=%~f1"
         if not exist "!file!" (
             echo 错误: 文件"%1"不存在
             goto end
         )
+        @REM 遍历文件中的URL
         for /f "usebackq delims=" %%i in ("!file!") do (
             set "url=%%i"
             if not "!url!"=="" (
+                @REM 统计URL数量
                 set /a git_repos_count+=1
             )
         )
