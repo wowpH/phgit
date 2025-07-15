@@ -42,6 +42,9 @@ if exist "%config_file%" (
     )
 )
 
+@REM 统计目录中的仓库数量
+call :count_repos
+
 @REM 解析 phgit 命令参数
 for %%i in (%VALID_COMMANDS%) do (
     if /i "%1"=="%%i" (
@@ -79,9 +82,26 @@ goto help
 
 @REM 统计仓库数量
 :count_repos
-    for /d %%i in ("%repos_dir%\*") do (
-        if exist "%%i\.git" (
-            set /a total+=1
+    @REM 支持传入仓库文件
+    if "%1"=="" (
+        echo 统计目录中的仓库数量
+        for /d %%i in ("%repos_dir%\*") do (
+            if exist "%%i\.git" (
+                set /a total+=1
+            )
+        )
+    ) else (
+        echo 统计传入文件中的仓库数量
+        set "file=%~f1"
+        if not exist "!file!" (
+            echo 错误: 文件"%1"不存在
+            goto end
+        )
+        for /f "usebackq delims=" %%i in ("!file!") do (
+            set "url=%%i"
+            if not "!url!"=="" (
+                set /a total+=1
+            )
         )
     )
     goto :eof
@@ -148,17 +168,8 @@ if "%2"=="-h" goto clone_help
 if "%2"=="" goto clone_help
 @REM 检查文件是否存在
 set "file=%~f2"
-if not exist "!file!" (
-    echo 错误: 文件"%2"不存在
-    goto end
-)
 @REM 统计传入文件中的URL数量
-for /f "usebackq delims=" %%i in ("!file!") do (
-    set "url=%%i"
-    if not "!url!"=="" (
-        set /a total+=1
-    )
-)
+call :count_repos "!file!"
 call :show_oper_info "开始批量克隆仓库..."
 for /f "usebackq delims=" %%i in ("!file!") do (
     set "url=%%i"
@@ -212,7 +223,6 @@ if /i not "%confirm%"=="y" (
     echo 已取消删除操作
     goto end
 )
-call :count_repos
 call :show_oper_info "开始批量删除仓库..."
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
@@ -230,7 +240,6 @@ call :show_oper_complete_info "删除完成"
 goto end
 
 :pull
-call :count_repos
 call :show_oper_info "开始批量拉取更新..."
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
@@ -320,7 +329,6 @@ goto end
 :: 检查分支参数是否提供
 if "%2"=="-h" goto switch_help
 if "%2"=="" goto switch_help
-call :count_repos
 call :show_oper_info "开始批量切换分支到: %2"
 for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
@@ -362,9 +370,10 @@ goto end
 :info
 echo.
 echo phgit版本: %VER%
-echo  安装目录: %script_dir%
 echo  当前目录: %work_dir%
 echo  仓库目录: %repos_dir%
+echo  仓库总数: %total%
+echo  安装目录: %script_dir%
 echo  配置文件: %config_file%
 goto end
 
