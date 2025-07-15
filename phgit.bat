@@ -3,8 +3,8 @@ setlocal enabledelayedexpansion
 
 @REM 版本号
 set "VER=1.1.0"
-@REM 命令列表: 默认为 clone pull switch set delete -h
-set "VALID_COMMANDS=clone pull switch set delete -h -i"
+@REM 命令列表
+set "COMMANDS=-h -i -v clone delete pull set switch"
 
 @REM 仓库数量: 默认为 0
 set /a total=0
@@ -46,13 +46,20 @@ if exist "%config_file%" (
 call :count_repos
 
 @REM 解析 phgit 命令参数
-for %%i in (%VALID_COMMANDS%) do (
+for %%i in (%COMMANDS%) do (
+    @REM 遍历命令列表
     if /i "%1"=="%%i" (
         if "%%i"=="-h" (
+            @REM 显示帮助信息
             goto help
         ) else if "%%i"=="-i" (
+            @REM 显示仓库信息
             goto info
+        ) else if "%%i"=="-v" (
+            @REM 显示版本信息
+            goto version
         ) else (
+            @REM 对应命令
             goto %%i
         )
     )
