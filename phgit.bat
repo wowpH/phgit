@@ -6,8 +6,8 @@ set "VER=1.1.0"
 @REM 命令列表
 set "COMMANDS=-h -i -v clone delete pull set switch"
 
-@REM 仓库数量: 默认为 0
-set /a total=0
+@REM Git仓库数量: 默认为 0
+set /a git_repos_count=0
 @REM 成功数量: 默认为 0
 set /a success=0
 @REM 失败数量: 默认为 0
@@ -18,26 +18,30 @@ set /a processed=0
 set "progress_bar="
 @REM 进度条长度: 默认为 50
 set /a progress_bar_len=50
-@REM 脚本目录
-set "script_dir=%~dp0"
-@REM 当前目录
+@REM 安装目录
+set "install_dir=%~dp0"
+@REM 工作目录
 set "work_dir=%cd%"
-@REM 配置文件目录: 默认为脚本目录
-set "config_dir=%script_dir%"
+@REM 配置文件目录: 默认为安装目录
+set "config_dir=%install_dir%"
 @REM 配置文件路径: 默认为配置文件目录下的 phgit.ini
 set "config_file=%config_dir%phgit.ini"
-@REM 仓库目录: 默认为当前目录
+@REM 仓库目录: 默认为工作目录
 set "repos_dir=%work_dir%"
 
-@REM 读取配置文件中的仓库目录, 默认为脚本目录
+@REM 读取配置文件中的仓库目录, 默认为工作目录
 if exist "%config_file%" (
     for /f "tokens=2 delims==" %%d in ('findstr "^repos=" "%config_file%"') do (
         if "%%d"=="%%~fd" (
+            @REM 配置文件中的仓库目录是绝对路径
             set "repos_dir=%%d"
         ) else (
+            @REM 配置文件中的仓库目录是相对路径, 相对于工作目录
             set "repos_dir=%work_dir%\%%d"
         )
+        @REM 转换路径为绝对路径
         for %%p in ("!repos_dir!") do set "repos_dir=%%~fp"
+        @REM 移除路径末尾的 "\"
         if "!repos_dir:~-1!"=="\" set "repos_dir=!repos_dir:~0,-1!"
     )
 )
@@ -74,9 +78,9 @@ goto help
     set "progress_char=■"
     set "empty_char=□"
     @REM 进度百分比值, 0-100
-    set /a percent=processed*100/total
+    set /a percent=processed*100/git_repos_count
     @REM 已完成进度条长度
-    set /a completed_len=processed*progress_bar_len/total
+    set /a completed_len=processed*progress_bar_len/git_repos_count
     @REM 进度条字符串
     set "progress="
     for /l %%p in (1,1,!completed_len!) do set "progress=!progress!%progress_char%"
@@ -93,7 +97,7 @@ goto help
     if "%1"=="" (
         for /d %%i in ("%repos_dir%\*") do (
             if exist "%%i\.git" (
-                set /a total+=1
+                set /a git_repos_count+=1
             )
         )
     ) else (
@@ -106,7 +110,7 @@ goto help
         for /f "usebackq delims=" %%i in ("!file!") do (
             set "url=%%i"
             if not "!url!"=="" (
-                set /a total+=1
+                set /a git_repos_count+=1
             )
         )
     )
@@ -117,7 +121,7 @@ goto help
     echo.
     echo %~1
     echo     目录: %repos_dir%
-    echo     总数: %total%
+    echo     总数: %git_repos_count%
     echo.
     goto :eof
 
@@ -125,7 +129,7 @@ goto help
 :show_oper_complete_info
     echo %~1
     echo     目录: %repos_dir%
-    echo     总数: %total%
+    echo     总数: %git_repos_count%
     echo     成功: %success%
     echo     失败: %failed%
     goto :eof
@@ -181,7 +185,7 @@ for /f "usebackq delims=" %%i in ("!file!") do (
     set "url=%%i"
     if not "!url!"=="" (
         set /a processed+=1
-        set /a percent=processed*progress_bar_len/total
+        set /a percent=processed*progress_bar_len/git_repos_count
         call :create_progress_bar
         echo 正在克隆: !url!
         @REM 克隆到指定目录
@@ -378,8 +382,8 @@ echo.
 echo phgit版本: %VER%
 echo  当前目录: %work_dir%
 echo  仓库目录: %repos_dir%
-echo  仓库总数: %total%
-echo  安装目录: %script_dir%
+echo  仓库总数: %git_repos_count%
+echo  安装目录: %install_dir%
 echo  配置文件: %config_file%
 goto end
 
