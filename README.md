@@ -20,3 +20,24 @@
 4. 查看帮助
 
    执行`phgit.bat -h`查看脚本的详细用法
+
+# 示例
+
+```shell
+phgit
+phgit -h
+phgit -i
+phgit -v
+phgit clone
+phgit clone -h
+phgit clone example.txt
+phgit delete
+phgit delete -h
+phgit pull
+phgit set
+phgit set -h
+phgit set repos .
+phgit switch
+phgit switch -h
+phgit switch main
+```

@@ -84,7 +84,6 @@ goto help
 :count_repos
     @REM 支持传入仓库文件
     if "%1"=="" (
-        echo 统计目录中的仓库数量
         for /d %%i in ("%repos_dir%\*") do (
             if exist "%%i\.git" (
                 set /a total+=1

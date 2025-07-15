@@ -1,2 +1,0 @@
-# 强制批处理文件使用 CRLF 行尾
-*.bat    text eol=crlf
