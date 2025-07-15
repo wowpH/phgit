@@ -366,29 +366,32 @@ echo.
 echo 批量Git脚本 v%VER%
 echo.
 echo 用法:
-echo    phgit [^<命令^>] [选项] [参数]
+echo    phgit [命令] [选项] [参数]
 echo.
 echo 命令:
-echo    clone       批量克隆
-echo    delete      批量删除仓库,仅删除Git仓库目录
-echo    pull        批量拉取
-echo    set         设置当前目录配置,未设置则默认当前目录
+echo    clone       批量克隆仓库
+echo    delete      批量删除仓库(仅Git目录)
+echo    pull        批量拉取更新
+echo    set         设置phgit配置
 echo    switch      批量切换分支
 echo.
 echo 选项:
 echo    -h          显示帮助信息
 echo    -i          显示详细信息
+echo    -v          显示版本信息
 goto end
 
 @REM 添加info标签显示信息
 :info
 echo.
-echo phgit版本: %VER%
-echo  当前目录: %work_dir%
+echo  工作目录: %work_dir%
 echo  仓库目录: %repos_dir%
-echo  仓库总数: %git_repos_count%
 echo  安装目录: %install_dir%
-echo  配置文件: %config_file%
+@REM 配置文件存在时显示配置文件路径
+if exist "%config_file%" (
+    echo  配置文件: %config_file%
+)
+echo  仓库数量: %git_repos_count%
 goto end
 
 :end
