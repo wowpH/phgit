@@ -354,11 +354,26 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         echo 正在切换: %%i
         cd /d "%%i"
-        git switch "%2"
+        @REM 检查分支是否存在
+        git show-ref --verify --quiet refs/heads/%2
         if !errorlevel! neq 0 (
-            echo 检测到本地修改，正在储藏...
-            git stash save "phgit switch stash"
-            git switch "%2"
+            echo 分支 %2 不存在
+        ) else (
+            @REM 检查本地是否存在修改
+            git diff --quiet --exit-code
+            if !errorlevel! neq 0 (
+                echo 检测到本地修改，正在储藏...
+                git stash save "phgit switch stash"
+                if !errorlevel! neq 0 (
+                    echo 储藏失败，无法切换分支
+                ) else (
+                    @REM 储藏成功，切换分支
+                    git switch "%2"
+                )
+            ) else (
+                @REM 本地无修改，直接切换
+                git switch "%2"
+            )
         )
         call :output_oper_result "切换完成" "切换失败"
         set /a processed+=1
