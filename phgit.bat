@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 @REM ∞Ê±æ∫≈
-set "VER=1.1.0"
+set "VER=1.2.0"
 @REM √¸¡Ó¡–±Ì
 set "COMMANDS=-h -i -v clone delete pull set switch"
 
