@@ -263,6 +263,8 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         echo 正在拉取: %%i
         cd /d "%%i"
+        @REM 拉取所有远程分支
+        git fetch --all >nul
         @REM 检查本地是否存在修改
         git diff --quiet --exit-code
         if !errorlevel! neq 0 (
