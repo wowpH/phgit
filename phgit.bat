@@ -263,10 +263,19 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         echo 正在拉取: %%i
         cd /d "%%i"
-        git pull
+        @REM 检查本地是否存在修改
+        git diff --quiet --exit-code
         if !errorlevel! neq 0 (
             echo 检测到本地修改，正在储藏...
             git stash save "phgit pull stash"
+            if !errorlevel! neq 0 (
+                echo 储藏失败，无法拉取
+            ) else (
+                @REM 储藏成功，拉取更新
+                git pull
+            )
+        ) else (
+            @REM 本地无修改，直接拉取
             git pull
         )
         call :output_oper_result "拉取完成" "拉取失败"
