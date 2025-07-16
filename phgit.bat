@@ -363,10 +363,32 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         echo 正在切换: %%i
         cd /d "%%i"
-        @REM 检查分支是否存在
+        @REM 拉取所有远程分支
+        git fetch --all >nul
+        @REM 检查本地分支是否存在
         git show-ref --verify --quiet refs/heads/%2
         if !errorlevel! neq 0 (
-            echo 分支 %2 不存在
+            @REM 检查远程分支是否存在
+            git show-ref --verify --quiet refs/remotes/origin/%2
+            if !errorlevel! neq 0 (
+                echo 分支 %2 不存在
+            ) else (
+                @REM 检查本地是否存在修改
+                git diff --quiet --exit-code
+                if !errorlevel! neq 0 (
+                    echo 检测到本地修改，正在储藏...
+                    git stash save "phgit switch stash"
+                    if !errorlevel! neq 0 (
+                        echo 储藏失败，无法切换分支
+                    ) else (
+                        @REM 远程分支存在，切换到远程分支
+                        git switch --track origin/%2
+                    )
+                ) else (
+                    @REM 远程分支存在，切换到远程分支
+                    git switch --track origin/%2
+                )
+            )
         ) else (
             @REM 检查本地是否存在修改
             git diff --quiet --exit-code
