@@ -266,7 +266,7 @@ for /d %%i in ("%repos_dir%\*") do (
         git pull
         if !errorlevel! neq 0 (
             echo 检测到本地修改，正在储藏...
-            git stash save "phgit stash"
+            git stash save "phgit pull stash"
             git pull
         )
         call :output_oper_result "拉取完成" "拉取失败"
@@ -355,6 +355,11 @@ for /d %%i in ("%repos_dir%\*") do (
         echo 正在切换: %%i
         cd /d "%%i"
         git switch "%2" 2>&1
+        if !errorlevel! neq 0 (
+            echo 检测到本地修改，正在储藏...
+            git stash save "phgit switch stash"
+            git switch "%2"
+        )
         call :output_oper_result "切换完成" "切换失败"
         set /a processed+=1
         call :output_progress_bar
