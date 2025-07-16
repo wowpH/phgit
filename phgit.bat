@@ -411,6 +411,10 @@ echo 选项:
 echo    -h          显示帮助信息
 echo    -i          显示详细信息
 echo    -v          显示版本信息
+echo.
+echo 注意:
+echo    1. 请确保已安装Git并配置好环境变量
+echo    2. 请确保Git 2.23+版本，支持switch命令
 goto end
 
 @REM 添加info标签显示信息
