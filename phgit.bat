@@ -354,7 +354,7 @@ for /d %%i in ("%repos_dir%\*") do (
     if exist "%%i\.git" (
         echo 正在切换: %%i
         cd /d "%%i"
-        git switch "%2" 2>&1
+        git switch "%2"
         if !errorlevel! neq 0 (
             echo 检测到本地修改，正在储藏...
             git stash save "phgit switch stash"
