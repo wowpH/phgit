@@ -120,7 +120,7 @@ goto help
         for /f "usebackq delims=" %%i in ("!file!") do (
             set "url=%%i"
             if not "!url!"=="" (
-                @REM 统计URL数量
+                @REM 统计文件中URL数量
                 set /a git_repos_count+=1
             )
         )
