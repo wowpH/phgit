@@ -21,7 +21,7 @@
 
    执行`phgit.bat -h`查看脚本的详细用法
 
-# 示例
+# 命令示例
 
 ```shell
 phgit
